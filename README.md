@@ -1,4 +1,4 @@
-# Parany Software Solution — Monorepo
+# pranay Software Solution — Monorepo
 
 Monorepo with **frontend** (Next.js App Router, TypeScript, Tailwind) and **backend** (NestJS, TypeScript, Prisma, PostgreSQL).
 
