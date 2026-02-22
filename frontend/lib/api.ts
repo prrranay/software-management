@@ -42,18 +42,19 @@ api.interceptors.response.use(
         isRefreshing = true;
         refreshPromise = (async () => {
           try {
-            const resp = await fetch("/api/auth/refresh", {
-              method: "POST",
-              credentials: "include",
-            });
-            if (!resp.ok) {
-              setAccessToken(null);
-              return;
+            const resp = await axios.post<{ accessToken: string }>(
+              `${API_BASE_URL}/auth/refresh`,
+              {},
+              { withCredentials: true }
+            );
+            if (resp.data.accessToken) {
+              setAccessToken(resp.data.accessToken);
+              localStorage.setItem("accessToken", resp.data.accessToken);
             }
-            const data = (await resp.json()) as { accessToken?: string };
-            if (data.accessToken) {
-              setAccessToken(data.accessToken);
-            }
+          } catch (e) {
+            setAccessToken(null);
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("user");
           } finally {
             isRefreshing = false;
           }

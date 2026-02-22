@@ -36,23 +36,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const resp = await fetch("/api/auth/session", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (!resp.ok) {
-          setAccessToken(null);
-          setUser(null);
+        // 1. Try restoring from localStorage first (works cross-origin)
+        const savedToken = localStorage.getItem("accessToken");
+        const savedUser = localStorage.getItem("user");
+        if (savedToken && savedUser) {
+          const parsedUser = JSON.parse(savedUser) as User;
+          setToken(savedToken);
+          setAccessToken(savedToken);
+          setUser(parsedUser);
+          if (!cancelled) setLoading(false);
           return;
         }
-        const data = (await resp.json()) as {
-          accessToken: string;
-          user: User;
-        };
+
+        // 2. Fallback: try restoring from backend's refresh cookie directly
+        const refreshResp = await api.post<{ accessToken: string }>("/auth/refresh");
+        const newAccessToken = refreshResp.data.accessToken;
+
+        // Temporarily set it so the profile call succeeds
+        setAccessToken(newAccessToken);
+
+        const profileResp = await api.get<User>("/auth/profile");
+        const newUser = profileResp.data;
+
         if (cancelled) return;
-        setToken(data.accessToken);
-        setAccessToken(data.accessToken);
-        setUser(data.user);
+        setToken(newAccessToken);
+        setUser(newUser);
+        localStorage.setItem("accessToken", newAccessToken);
+        localStorage.setItem("user", JSON.stringify(newUser));
       } catch {
         // ignore, unauthenticated
       } finally {
@@ -73,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(resp.data.accessToken);
       setAccessToken(resp.data.accessToken);
       setUser(resp.data.user);
+      localStorage.setItem("accessToken", resp.data.accessToken);
+      localStorage.setItem("user", JSON.stringify(resp.data.user));
       toast.success("Logged in");
       if (resp.data.user.role === "ADMIN") router.push("/admin/dashboard");
       else if (resp.data.user.role === "EMPLOYEE")
@@ -97,6 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null);
       setAccessToken(null);
       setUser(null);
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
       router.push("/login");
     }
   };
