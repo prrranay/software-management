@@ -14,7 +14,7 @@ import { Public } from '../common/decorators/public.decorator';
 @Controller('auth')
 @ApiBearerAuth('access-token')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Public()
   @Post('login')
@@ -23,14 +23,10 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'Login successful', type: LoginResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
     @Body() body: LoginDto,
   ) {
     const { accessToken, user, refreshToken } = await this.authService.login(body.email, body.password);
-    const cookieOptions = this.authService.getRefreshCookieOptions();
-    res.cookie(this.authService.getRefreshCookieName(), refreshToken, cookieOptions);
-    return { accessToken, user };
+    return { accessToken, refreshToken, user };
   }
 
   @Public()
@@ -52,10 +48,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Clear refresh token cookie' })
   @ApiResponse({ status: 204, description: 'Cookie cleared' })
-  async logout(@Res({ passthrough: true }) res: Response) {
-    const name = this.authService.getRefreshCookieName();
-    const options = this.authService.getLogoutCookieOptions();
-    res.cookie(name, '', options);
+  async logout() {
+    // With pure token architecture, logout is mostly handled client-side.
+    // Future: blacklisting tokens if strictly required.
     return;
   }
 

@@ -9,9 +9,7 @@ export type RefreshPayload = { sub: string; email: string; type: 'refresh' };
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor() {
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => req?.cookies?.refreshToken ?? null,
-      ]),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_REFRESH_SECRET,
       passReqToCallback: false,

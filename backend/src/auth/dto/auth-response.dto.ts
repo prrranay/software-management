@@ -20,6 +20,8 @@ export class LoginResponseDto {
   accessToken!: string;
   @ApiProperty({ type: UserProfileDto, example: { id: 'uuid', name: 'Admin', email: 'admin@example.com', role: 'ADMIN', isActive: true, clientCompanyId: null } })
   user!: UserProfileDto;
+  @ApiProperty({ description: 'JWT refresh token for generating new access tokens' })
+  refreshToken!: string;
 }
 
 export class RefreshResponseDto {

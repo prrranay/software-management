@@ -42,10 +42,15 @@ api.interceptors.response.use(
         isRefreshing = true;
         refreshPromise = (async () => {
           try {
+            const rToken = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
+            if (!rToken) throw new Error("No refresh token");
+
             const resp = await axios.post<{ accessToken: string }>(
               `${API_BASE_URL}/auth/refresh`,
               {},
-              { withCredentials: true }
+              {
+                headers: { Authorization: `Bearer ${rToken}` }
+              }
             );
             if (resp.data.accessToken) {
               setAccessToken(resp.data.accessToken);
@@ -54,6 +59,7 @@ api.interceptors.response.use(
           } catch (e) {
             setAccessToken(null);
             localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
             localStorage.removeItem("user");
           } finally {
             isRefreshing = false;

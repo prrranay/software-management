@@ -12,13 +12,7 @@ export default function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  useEffect(() => {
-    if (user && !authLoading) {
-      if (user.role === "ADMIN") router.push("/admin/dashboard");
-      else if (user.role === "EMPLOYEE") router.push("/employee/projects");
-      else router.push("/client/projects");
-    }
-  }, [user, authLoading, router]);
+  // The redirect is handled directly inside the `login` function of auth-context.tsx
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,8 +26,28 @@ export default function LoginContent() {
 
   const redirect = searchParams.get("redirect");
 
-  if (authLoading || user) {
-    return <div className="min-h-screen bg-slate-950" />;
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-800 border-t-sky-500"></div>
+          <p className="text-sm text-slate-400 font-medium animate-pulse">Authenticating...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // If user exists but we are not loading, the context is currently redirecting us.
+  // Show the loader to prevent the login form from flashing before the router finishes.
+  if (user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-800 border-t-sky-500"></div>
+          <p className="text-sm text-slate-400 font-medium animate-pulse">Redirecting...</p>
+        </div>
+      </main>
+    );
   }
 
   return (

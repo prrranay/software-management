@@ -48,8 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // 2. Fallback: try restoring from backend's refresh cookie directly
-        const refreshResp = await api.post<{ accessToken: string }>("/auth/refresh");
+        // 2. Fallback: try restoring from backend if a refreshToken is available
+        const rToken = localStorage.getItem("refreshToken");
+        if (!rToken) {
+          if (cancelled) return;
+          setLoading(false);
+          return;
+        }
+
+        const refreshResp = await api.post<{ accessToken: string }>(
+          "/auth/refresh",
+          {},
+          { headers: { Authorization: `Bearer ${rToken}` } }
+        );
         const newAccessToken = refreshResp.data.accessToken;
 
         // Temporarily set it so the profile call succeeds
@@ -65,6 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("user", JSON.stringify(newUser));
       } catch {
         // ignore, unauthenticated
+        setAccessToken(null);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -76,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const resp = await api.post<{ accessToken: string; user: User }>(
+      const resp = await api.post<{ accessToken: string; refreshToken: string; user: User }>(
         "/auth/login",
         { email, password },
       );
@@ -84,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(resp.data.accessToken);
       setUser(resp.data.user);
       localStorage.setItem("accessToken", resp.data.accessToken);
+      localStorage.setItem("refreshToken", resp.data.refreshToken);
       localStorage.setItem("user", JSON.stringify(resp.data.user));
       toast.success("Logged in");
       if (resp.data.user.role === "ADMIN") router.push("/admin/dashboard");
@@ -110,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(null);
       setUser(null);
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");
       router.push("/login");
     }
